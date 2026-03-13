@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Echo Maze</title>
+
+<style>
+
+body{
+font-family:Arial;
+text-align:center;
+background:#f3f3f3;
+}
+
+#maze{
+font-family:monospace;
+font-size:22px;
+white-space:pre;
+margin-top:20px;
+}
+
+button{
+width:150px;
+height:45px;
+font-size:16px;
+margin:8px;
+}
+
+.green{
+color:green;
+font-weight:bold;
+}
+
+</style>
+</head>
+
+<body>
+
+<h2>Echo Maze</h2>
+
+<button onclick="startGame()">Start Game</button>
+
+<div id="level"></div>
+<div id="instruction"></div>
+<div id="timer"></div>
+<div id="pulseInfo"></div>
+<div id="word"></div>
+
+<div id="maze"></div>
+
+<br>
+
+<button onclick="pulse()">🔊</button>
+
+<script>
+
+const SIZE=10
+const RADIUS=2
+
+let level=1
+let timer=0
+let timerInterval
+let pulses=3
+
+let playerX=8
+let playerY=1
+
+let word=""
+let found=[]
+let collected=[]
+
+let words=["MOON","PLANT","FOREST","ORANGE","ANIMALS","FLOWERS"]
+
+let maze=[
+['#','#','#','#','#','#','#','#','#','#'],
+['#','.','.','.','#','.','.','.','.','#'],
+['#','.','#','.','#','.','#','.','.','#'],
+['#','.','#','.','.','.','#','.','#','#'],
+['#','.','.','#','#','.','.','.','.','#'],
+['#','#','.','.','#','.','#','#','.','#'],
+['#','.','.','#','.','.','.','#','.','#'],
+['#','.','#','.','.','#','.','.','.','#'],
+['#','.','.','.','#','.','#','.','.','#'],
+['#','#','#','#','#','#','#','#','#','#']
+]
+
+let visible=[]
+
+function resetArrays(){
+
+visible=[]
+collected=[]
+
+for(let i=0;i<SIZE;i++)
+{
+visible[i]=Array(SIZE).fill(0)
+collected[i]=Array(SIZE).fill(false)
+}
+
+}
+
+function startTimer(){
+
+clearInterval(timerInterval)
+
+timer=0
+
+timerInterval=setInterval(function(){
+
+timer++
+document.getElementById("timer").innerText="Time: "+timer+"s"
+
+},1000)
+
+}
+
+function stopTimer(){
+
+clearInterval(timerInterval)
+
+}
+
+function startGame(){
+
+level=1
+pulses=3
+
+placeExit()
+
+resetGame()
+
+startTimer()
+
+}
+
+function resetGame(){
+
+resetArrays()
+
+playerX=8
+playerY=1
+
+revealArea()
+
+displayMaze()
+
+}
+
+function placeExit(){
+
+for(let i=0;i<SIZE;i++)
+for(let j=0;j<SIZE;j++)
+if(maze[i][j]=='E')
+maze[i][j]='.'
+
+let x,y
+
+while(true)
+{
+
+x=Math.floor(Math.random()*SIZE)
+y=Math.floor(Math.random()*SIZE)
+
+if(maze[x][y]=='.' && Math.abs(x-playerX)>3)
+{
+maze[x][y]='E'
+break
+}
+
+}
+
+}
+
+function placeWord(){
+
+for(let i=0;i<SIZE;i++)
+for(let j=0;j<SIZE;j++)
+if(maze[i][j]!='#')
+maze[i][j]='.'
+
+word=words[level-2]
+
+found=Array(word.length).fill(false)
+
+for(let k=0;k<word.length;k++)
+{
+
+let x,y
+
+while(true)
+{
+
+x=Math.floor(Math.random()*SIZE)
+y=Math.floor(Math.random()*SIZE)
+
+if(maze[x][y]=='.')
+{
+maze[x][y]=word[k]
+break
+}
+
+}
+
+}
+
+}
+
+function displayWord(){
+
+let out="Word: "
+
+for(let i=0;i<word.length;i++)
+{
+
+if(found[i])
+out+="<span class='green'>"+word[i]+"</span> "
+else
+out+="_ "
+
+}
+
+document.getElementById("word").innerHTML=out
+
+}
+
+function displayMaze(){
+
+let output=""
+
+for(let i=0;i<SIZE;i++)
+{
+
+for(let j=0;j<SIZE;j++)
+{
+
+if(i==playerX && j==playerY)
+output+="P "
+
+else if(visible[i][j])
+output+=maze[i][j]+" "
+
+else
+output+="? "
+
+}
+
+output+="\n"
+
+}
+
+document.getElementById("maze").innerText=output
+
+document.getElementById("level").innerText="Level "+level
+
+if(level==1)
+document.getElementById("instruction").innerText="Find the Exit (E)"
+else
+document.getElementById("instruction").innerText="Find the hidden word letters"
+
+document.getElementById("pulseInfo").innerText="Sound Pulses Left: "+pulses
+
+if(level>1)
+displayWord()
+
+}
+
+function revealArea(){
+
+for(let i=playerX-RADIUS;i<=playerX+RADIUS;i++)
+for(let j=playerY-RADIUS;j<=playerY+RADIUS;j++)
+if(i>=0 && j>=0 && i<SIZE && j<SIZE)
+visible[i][j]=1
+
+displayMaze()
+
+}
+
+function isValidMove(x,y){
+
+if(x<0||y<0||x>=SIZE||y>=SIZE) return false
+if(maze[x][y]=='#') return false
+
+return true
+
+}
+
+function movePlayer(move){
+
+let newX=playerX
+let newY=playerY
+
+if(move=='w') newX--
+if(move=='s') newX++
+if(move=='a') newY--
+if(move=='d') newY++
+
+if(isValidMove(newX,newY))
+{
+playerX=newX
+playerY=newY
+}
+
+let cell=maze[playerX][playerY]
+
+if(level==1 && cell=='E')
+{
+
+stopTimer()
+
+alert("Wonderful! Level 1 completed\nTime Taken: "+timer+" seconds")
+
+if(confirm("Start Level 2?"))
+{
+
+level++
+pulses=3
+placeWord()
+resetGame()
+startTimer()
+
+}
+
+return
+
+}
+
+if(level>1 && cell!='.' && cell!='#')
+{
+
+for(let i=0;i<word.length;i++)
+{
+
+if(word[i]==cell && !found[i] && !collected[playerX][playerY])
+{
+
+found[i]=true
+
+collected[playerX][playerY]=true
+
+/* make the letter permanently visible */
+
+visible[playerX][playerY]=1
+
+alert("Letter Found: "+cell)
+
+break
+
+}
+}
+
+displayMaze()
+
+if(found.every(v=>v))
+{
+
+stopTimer()
+
+alert("Excellent! Level "+level+" completed\nTime Taken: "+timer+" seconds")
+
+if(confirm("Proceed to next level?"))
+{
+
+level++
+
+if(level-2 < words.length)
+{
+pulses=3
+placeWord()
+resetGame()
+startTimer()
+}
+else
+{
+alert("🏆 Congratulations! You completed all levels!")
+}
+
+}
+
+}
+
+return
+
+}
+
+displayMaze()
+
+}
+
+function pulse(){
+
+if(pulses<=0)
+{
+alert("No sound pulses left!")
+return
+}
+
+pulses--
+
+alert("🔊 Sound Pulse Activated")
+
+revealArea()
+
+displayMaze()
+
+}
+
+document.addEventListener("keydown",function(e){
+
+if(e.key=="w"||e.key=="W") movePlayer('w')
+if(e.key=="s"||e.key=="S") movePlayer('s')
+if(e.key=="a"||e.key=="A") movePlayer('a')
+if(e.key=="d"||e.key=="D") movePlayer('d')
+
+})
+
+let startX=0
+let startY=0
+
+document.addEventListener("touchstart",function(e){
+
+startX=e.touches[0].clientX
+startY=e.touches[0].clientY
+
+})
+
+document.addEventListener("touchend",function(e){
+
+let endX=e.changedTouches[0].clientX
+let endY=e.changedTouches[0].clientY
+
+let dx=endX-startX
+let dy=endY-startY
+
+if(Math.abs(dx)>Math.abs(dy))
+{
+
+if(dx>40) movePlayer('d')
+else if(dx<-40) movePlayer('a')
+
+}
+else
+{
+
+if(dy>40) movePlayer('s')
+else if(dy<-40) movePlayer('w')
+
+}
+
+})
+
+</script>
+
+</body>
+</html>
