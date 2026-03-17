@@ -8,6 +8,12 @@
 
 <style>
 
+html, body{
+height:100%;
+overflow:hidden; /* prevents scroll refresh */
+touch-action:none; /* disables pull-to-refresh */
+}
+
 body{
 font-family:Arial;
 text-align:center;
@@ -15,10 +21,6 @@ background:linear-gradient(135deg,#0f2027,#203a43,#2c5364);
 color:white;
 margin:0;
 padding:10px;
-}
-
-h2{
-margin-top:10px;
 }
 
 #maze{
@@ -44,18 +46,9 @@ color:white;
 cursor:pointer;
 }
 
-button:hover{
-background:#ff5722;
-}
-
 .green{
 color:#00ff00;
 font-weight:bold;
-}
-
-#instruction{
-margin-top:10px;
-font-size:18px;
 }
 
 </style>
@@ -66,31 +59,16 @@ font-size:18px;
 
 <h2>🎮 Echo Maze</h2>
 
-<div>
-Move: W A S D (PC) or Swipe (Mobile)<br>
-P = Player | # = Wall | . = Path<br>
-Use 🔊 to reveal nearby area
-</div>
+<div>Move: W A S D or Swipe</div>
 
-<br>
-
-<button onclick="startGame()">Start Game</button>
-<button onclick="restartGame()">Restart</button>
+<button onclick="startGame()">Start</button>
 
 <div id="level"></div>
-<div id="instruction"></div>
 <div id="timer"></div>
-<div id="pulseInfo"></div>
 <div id="word"></div>
-
-<h3>🏆 Best Time</h3>
-<div id="bestScore">No record yet</div>
-
 <div id="maze"></div>
 
-<br>
-
-<button onclick="pulse()">🔊 Sound Pulse</button>
+<button onclick="pulse()">🔊</button>
 
 <script>
 
@@ -109,7 +87,7 @@ let word=""
 let found=[]
 let collected=[]
 
-let words=["MOON","PLANT","FOREST","ORANGE","ANIMALS","FLOWERS"]
+let words=["MOON","PLANT","FOREST"]
 
 let maze=[
 ['#','#','#','#','#','#','#','#','#','#'],
@@ -127,359 +105,194 @@ let maze=[
 let visible=[]
 
 function resetArrays(){
-
 visible=[]
 collected=[]
-
-for(let i=0;i<SIZE;i++)
-{
+for(let i=0;i<SIZE;i++){
 visible[i]=Array(SIZE).fill(0)
 collected[i]=Array(SIZE).fill(false)
 }
+}
 
+function startGame(){
+level=1
+placeExit()
+resetGame()
+startTimer()
 }
 
 function startTimer(){
-
 clearInterval(timerInterval)
-
 timer=0
-
-timerInterval=setInterval(function(){
-
+timerInterval=setInterval(()=>{
 timer++
-document.getElementById("timer").innerText="Time: "+timer+" s"
-
+document.getElementById("timer").innerText="Time: "+timer
 },1000)
-
 }
 
 function stopTimer(){
 clearInterval(timerInterval)
-saveBestScore()
-}
-
-function saveBestScore(){
-
-let best=localStorage.getItem("echoBest")
-
-if(best==null || timer<best)
-{
-localStorage.setItem("echoBest",timer)
-best=timer
-}
-
-document.getElementById("bestScore").innerText=
-"Best Time : "+best+" seconds"
-
-}
-
-function startGame(){
-
-level=1
-pulses=3
-
-placeExit()
-resetGame()
-
-startTimer()
-
-}
-
-function restartGame(){
-
-if(confirm("Restart the game?"))
-{
-startGame()
-}
-
 }
 
 function resetGame(){
-
 resetArrays()
-
 playerX=8
 playerY=1
-
 revealArea()
 displayMaze()
-
 }
 
 function placeExit(){
-
 for(let i=0;i<SIZE;i++)
 for(let j=0;j<SIZE;j++)
-if(maze[i][j]=='E')
-maze[i][j]='.'
-
-let x,y
+if(maze[i][j]=='E') maze[i][j]='.'
 
 while(true){
-
-x=Math.floor(Math.random()*SIZE)
-y=Math.floor(Math.random()*SIZE)
-
-if(maze[x][y]=='.' && Math.abs(x-playerX)>3)
-{
+let x=Math.random()*SIZE|0
+let y=Math.random()*SIZE|0
+if(maze[x][y]=='.'){
 maze[x][y]='E'
 break
 }
-
 }
-
 }
 
 function placeWord(){
-
-for(let i=0;i<SIZE;i++)
-for(let j=0;j<SIZE;j++)
-if(maze[i][j]!='#')
-maze[i][j]='.'
-
 word=words[level-2]
 found=Array(word.length).fill(false)
 
+for(let i=0;i<SIZE;i++)
+for(let j=0;j<SIZE;j++)
+if(maze[i][j]!='#') maze[i][j]='.'
+
 for(let k=0;k<word.length;k++){
-
-let x,y
-
 while(true){
-
-x=Math.floor(Math.random()*SIZE)
-y=Math.floor(Math.random()*SIZE)
-
-if(maze[x][y]=='.')
-{
+let x=Math.random()*SIZE|0
+let y=Math.random()*SIZE|0
+if(maze[x][y]=='.'){
 maze[x][y]=word[k]
 break
 }
-
 }
-
 }
-
-}
-
-function displayWord(){
-
-let out="Word: "
-
-for(let i=0;i<word.length;i++){
-
-if(found[i])
-out+="<span class='green'>"+word[i]+"</span> "
-else
-out+="_ "
-
-}
-
-document.getElementById("word").innerHTML=out
-
 }
 
 function displayMaze(){
-
-let output=""
-
+let out=""
 for(let i=0;i<SIZE;i++){
-
 for(let j=0;j<SIZE;j++){
-
-if(i==playerX && j==playerY)
-output+="P "
-
-else if(visible[i][j])
-output+=maze[i][j]+" "
-
-else
-output+="? "
-
+if(i==playerX && j==playerY) out+="P "
+else if(visible[i][j]) out+=maze[i][j]+" "
+else out+="? "
 }
-
-output+="\n"
-
+out+="\n"
 }
-
-document.getElementById("maze").innerText=output
-
+document.getElementById("maze").innerText=out
 document.getElementById("level").innerText="Level "+level
 
-if(level==1)
-document.getElementById("instruction").innerText="Find the Exit (E)"
-else
-document.getElementById("instruction").innerText="Find hidden word letters"
-
-document.getElementById("pulseInfo").innerText="Sound Pulses Left: "+pulses
-
-if(level>1)
-displayWord()
-
+if(level>1){
+let w="Word: "
+for(let i=0;i<word.length;i++){
+w+=found[i] ? "<span class='green'>"+word[i]+"</span> " : "_ "
+}
+document.getElementById("word").innerHTML=w
+}
 }
 
 function revealArea(){
-
 for(let i=playerX-RADIUS;i<=playerX+RADIUS;i++)
 for(let j=playerY-RADIUS;j<=playerY+RADIUS;j++)
-if(i>=0 && j>=0 && i<SIZE && j<SIZE)
+if(i>=0&&j>=0&&i<SIZE&&j<SIZE)
 visible[i][j]=1
-
 displayMaze()
-
 }
 
-function isValidMove(x,y){
+function movePlayer(m){
+let x=playerX,y=playerY
+if(m=='w')x--
+if(m=='s')x++
+if(m=='a')y--
+if(m=='d')y++
 
-if(x<0||y<0||x>=SIZE||y>=SIZE) return false
-if(maze[x][y]=='#') return false
-
-return true
-
-}
-
-function movePlayer(move){
-
-let newX=playerX
-let newY=playerY
-
-if(move=='w') newX--
-if(move=='s') newX++
-if(move=='a') newY--
-if(move=='d') newY++
-
-if(isValidMove(newX,newY))
-{
-playerX=newX
-playerY=newY
+if(x>=0&&y>=0&&x<SIZE&&y<SIZE&&maze[x][y]!='#'){
+playerX=x;playerY=y
 }
 
 let cell=maze[playerX][playerY]
 
 if(level==1 && cell=='E'){
-
 stopTimer()
-
-alert("Level 1 completed!\nTime: "+timer+" seconds")
-
-if(confirm("Start Level 2?")){
+alert("Level 1 done")
 level++
-pulses=3
 placeWord()
 resetGame()
 startTimer()
-}
-
 return
 }
 
 if(level>1 && cell!='.' && cell!='#'){
-
 for(let i=0;i<word.length;i++){
-
 if(word[i]==cell && !found[i] && !collected[playerX][playerY]){
-
 found[i]=true
 collected[playerX][playerY]=true
 visible[playerX][playerY]=1
-
-alert("Letter Found: "+cell)
-
+alert("Found "+cell)
 break
 }
-
 }
 
-displayMaze()
-
 if(found.every(v=>v)){
-
 stopTimer()
-
-alert("Level "+level+" completed!\nTime: "+timer+" seconds")
-
-if(confirm("Next Level?")){
-
+alert("Level done")
 level++
-
-if(level-2 < words.length){
-pulses=3
+if(level-2<words.length){
 placeWord()
 resetGame()
 startTimer()
 }
-else{
-alert("🏆 You completed all levels!")
 }
-
-}
-
-}
-
-return
 }
 
 displayMaze()
-
 }
 
 function pulse(){
-
-if(pulses<=0){
-alert("No sound pulses left!")
-return
-}
-
+if(pulses<=0){alert("No pulses");return}
 pulses--
-
-alert("🔊 Sound Pulse Activated")
-
 revealArea()
-displayMaze()
-
 }
 
-document.addEventListener("keydown",function(e){
-
-if(e.key=="w"||e.key=="W") movePlayer('w')
-if(e.key=="s"||e.key=="S") movePlayer('s')
-if(e.key=="a"||e.key=="A") movePlayer('a')
-if(e.key=="d"||e.key=="D") movePlayer('d')
-
+// keyboard
+document.addEventListener("keydown",e=>{
+if(e.key=='w')movePlayer('w')
+if(e.key=='s')movePlayer('s')
+if(e.key=='a')movePlayer('a')
+if(e.key=='d')movePlayer('d')
 })
 
-let startX=0
-let startY=0
+// TOUCH FIX (IMPORTANT)
+let sx=0,sy=0
 
-document.addEventListener("touchstart",function(e){
+document.addEventListener("touchstart",e=>{
+e.preventDefault()
+sx=e.touches[0].clientX
+sy=e.touches[0].clientY
+},{passive:false})
 
-startX=e.touches[0].clientX
-startY=e.touches[0].clientY
+document.addEventListener("touchend",e=>{
+e.preventDefault()
 
-})
-
-document.addEventListener("touchend",function(e){
-
-let endX=e.changedTouches[0].clientX
-let endY=e.changedTouches[0].clientY
-
-let dx=endX-startX
-let dy=endY-startY
+let dx=e.changedTouches[0].clientX-sx
+let dy=e.changedTouches[0].clientY-sy
 
 if(Math.abs(dx)>Math.abs(dy)){
-
-if(dx>40) movePlayer('d')
-else if(dx<-40) movePlayer('a')
-
-}
-else{
-
-if(dy>40) movePlayer('s')
-else if(dy<-40) movePlayer('w')
-
+if(dx>40)movePlayer('d')
+else if(dx<-40)movePlayer('a')
+}else{
+if(dy>40)movePlayer('s')
+else if(dy<-40)movePlayer('w')
 }
 
-})
+},{passive:false})
 
 </script>
 
